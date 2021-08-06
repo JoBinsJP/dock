@@ -1,0 +1,107 @@
+version: "3.8"
+
+networks:
+  public:
+    name: traefik_web
+    driver: bridge
+  postgres:
+    name: postgres
+    driver: bridge
+  redis:
+    name: redis
+    driver: bridge
+  mail:
+    name: mail
+    driver: bridge
+  minio:
+    name: minio
+    driver: bridge
+
+services:
+  traefik:
+    image: traefik:latest
+    container_name: "traefik"
+    restart: always
+    ports:
+      - 80:80
+      - 443:443
+    networks:
+      - public
+    dns:
+      - host.docker.internal
+    volumes:
+      - ./traefik/traefik.toml:/etc/traefik/traefik.toml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    labels:
+      - traefik.enable=true
+      - tls.certificates.stores=default
+      - traefik.http.routers.api.rule=Host(`docker.localhost`)
+      - traefik.http.routers.api.service=api@internal
+
+  postgres12:
+    image: postgres:12-alpine
+    container_name: "postgres-12"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data:rw
+    #    restart: on-failure
+    ports:
+      - ${POSTGRES_12_PORT}:5432
+    environment:
+      - POSTGRES_USER=${POSTGRES_ROOT_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_ROOT_PASS}
+    networks:
+      - postgres
+      - public
+
+  redis:
+    image: redis:latest
+    container_name: "redis"
+    volumes:
+      - ./data/redis:/data
+    ports:
+      - 6379:6379
+    networks:
+      - redis
+      - public
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: "mailhog"
+    ports:
+      - 1025:1025
+    #      - 8025:8025
+    expose:
+      - 8025
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_web"
+      - "traefik.http.routers.mailhog.rule=Host(`mail.localhost`)"
+      - "traefik.http.services.mailhog.loadbalancer.server.port=8025"
+      - "traefik.http.services.mailhog.loadbalancer.passhostheader=true"
+    networks:
+      - mail
+      - public
+
+  minio:
+    image: minio/minio
+    container_name: "minio"
+    command: server --console-address 0.0.0.0:${MINIO_PORT} /export
+    entrypoint:
+      - "minio"
+    volumes:
+      - ./data/minio/data:/export
+      - ./data/minio/config:/root/.minio
+    ports:
+      - ${MINIO_PORT}:${MINIO_PORT}
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    networks:
+      - minio
+      - public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_web"
+      - "traefik.http.routers.minio.rule=Host(`minio.localhost`)"
+      - "traefik.http.services.minio.loadbalancer.server.port=9005"
+      - "traefik.http.services.minio.loadbalancer.passhostheader=true"
