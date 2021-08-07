@@ -7,6 +7,9 @@ networks:
   postgres:
     name: postgres
     driver: bridge
+  mysql:
+    name: mysql
+    driver: bridge
   redis:
     name: redis
     driver: bridge
@@ -105,3 +108,18 @@ services:
       - "traefik.http.routers.minio.rule=Host(`minio.localhost`)"
       - "traefik.http.services.minio.loadbalancer.server.port=9005"
       - "traefik.http.services.minio.loadbalancer.passhostheader=true"
+
+  mysql56:
+    image: mysql:5.6
+    platform: linux/x86_64
+    container_name: "mysql56"
+    volumes:
+      - ./mysql/56/mysql.cnf:/etc/mysql/conf.d/mysql.cnf:ro
+      - ./data/mysql/56:/var/lib/mysql:rw
+    ports:
+      - ${MYSQL_56_PORT}:3306
+    #    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASS}
+    networks:
+      - mysql
