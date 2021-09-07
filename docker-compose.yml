@@ -123,3 +123,19 @@ services:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASS}
     networks:
       - mysql
+
+  mysql57:
+    image: mysql:5.7
+    platform: linux/x86_64
+    container_name: "mysql57"
+    command: --default-authentication-plugin=mysql_native_password
+    volumes:
+      - ./mysql/57/mysql.cnf:/etc/mysql/conf.d/mysql.cnf:ro
+      - ./data/mysql/57:/var/lib/mysql:rw
+    ports:
+      - ${MYSQL_57_PORT}:3306
+    #    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASS}
+    networks:
+      - mysql
