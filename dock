@@ -2,16 +2,17 @@
 
 LARAVEL_SERVICE=laravel
 LARAVEL_USER=laravel
-
-if [ $# -eq 0 ]; then
-    docker compose ps
-
-    exit 0
-fi
+DATABASE_SERVICE=postgres12
 
 # Source the ".env" file so Laravel's environment variables are available...
 if [ -f ./.env ]; then
     source ./.env
+fi
+
+if [ $# -eq 0 ]; then
+    ${DOCKER_COMPOSE} ps
+
+    exit 0
 fi
 
 # docker compose up
@@ -22,10 +23,10 @@ if [ "$1" == "up" ]; then
       then
         read -p "Do you really want to start all services? [y/n] " -n 1 -r
         if [[ $REPLY =~ ^[Yy]$ ]]; then
-            docker compose -f docker-compose.yml up -d --remove-orphans --build
+            ${DOCKER_COMPOSE} -f docker-compose.yml up -d --remove-orphans --build
         fi
     else
-        docker compose -f docker-compose.yml up -d --remove-orphans --build "$@"
+        ${DOCKER_COMPOSE} -f docker-compose.yml up -d --remove-orphans --build "$@"
     fi
 
     exit 0
@@ -33,7 +34,7 @@ fi
 
 # docker compose down
 if [ "$1" == "down" ]; then
-    docker compose -f docker-compose.yml down
+    ${DOCKER_COMPOSE} -f docker-compose.yml down
 
     exit 0
 fi
@@ -53,12 +54,12 @@ if [ "$1" == "ssh" ]; then
             sshService=$sshServer
         fi
 
-        docker compose exec $sshUserOption $sshService sh
+        ${DOCKER_COMPOSE} exec $sshUserOption $sshService sh
 
         exit 0
     fi
 
-    docker compose exec -u "$LARAVEL_USER" "$LARAVEL_SERVICE" sh -l
+    ${DOCKER_COMPOSE} exec -u "$LARAVEL_USER" "$LARAVEL_SERVICE" sh -l
 
     exit 0
 fi
@@ -67,7 +68,16 @@ fi
 if [ "$1" == "run" ]; then
     shift 1
 
-    docker compose exec -u "$LARAVEL_USER" "$LARAVEL_SERVICE" "$@"
+    ${DOCKER_COMPOSE} exec -u "$LARAVEL_USER" "$LARAVEL_SERVICE" "$@"
+
+    exit 0
+fi
+
+# To restores db dump
+if [ "$1" == "db:restore" ]; then
+    shift 1
+
+    ${DOCKER_COMPOSE} exec -T "$DATABASE_SERVICE" psql -U "$POSTGRES_ROOT_USER" -d "$DUMP_RESTORE_DB_NAME" -w <"$@"
 
     exit 0
 fi
@@ -76,7 +86,7 @@ fi
 if [ "$1" == "composer" ]; then
     shift 1
 
-    docker compose exec -u "$LARAVEL_USER" "$LARAVEL_SERVICE" composer "$@"
+    ${DOCKER_COMPOSE} exec -u "$LARAVEL_USER" "$LARAVEL_SERVICE" composer "$@"
 
     exit 0
 fi
@@ -85,7 +95,7 @@ fi
 if [ "$1" == "par" ]; then
     shift 1
 
-    docker compose exec -u "$LARAVEL_USER" "$LARAVEL_SERVICE" php artisan "$@"
+    ${DOCKER_COMPOSE} exec -u "$LARAVEL_USER" "$LARAVEL_SERVICE" php artisan "$@"
 
     exit 0
 fi
@@ -94,7 +104,7 @@ fi
 if [ "$1" == "yarn" ]; then
     shift 1
 
-    docker compose exec -u "$LARAVEL_USER" "$LARAVEL_SERVICE" yarn "$@"
+    ${DOCKER_COMPOSE} exec -u "$LARAVEL_USER" "$LARAVEL_SERVICE" yarn "$@"
 
     exit 0
 fi
@@ -103,7 +113,7 @@ fi
 if [ "$1" == "generate-routes" ]; then
     shift 1
 
-    docker compose exec -u "$LARAVEL_USER" "$LARAVEL_SERVICE" \
+    ${DOCKER_COMPOSE} exec -u "$LARAVEL_USER" "$LARAVEL_SERVICE" \
         php artisan ziggy:generate resources/assets/js/routes.generated.js
 
     exit 0
@@ -113,13 +123,13 @@ fi
 if [ "$1" == "lint-php" ]; then
     shift 1
 
-    docker compose exec -u "$LARAVEL_USER" "$LARAVEL_SERVICE" \
+    ${DOCKER_COMPOSE} exec -u "$LARAVEL_USER" "$LARAVEL_SERVICE" \
         ./vendor/bin/phpcs --standard=./.devops/conf/.php-cs-rules.xml ./app/
 
-    docker compose exec -u "$LARAVEL_USER" "$LARAVEL_SERVICE" \
+    ${DOCKER_COMPOSE} exec -u "$LARAVEL_USER" "$LARAVEL_SERVICE" \
         ./vendor/bin/phpmd ./app/ ansi ./.devops/conf/.php-md-rules.xml
 
-    docker compose exec -u "$LARAVEL_USER" "$LARAVEL_SERVICE" \
+    ${DOCKER_COMPOSE} exec -u "$LARAVEL_USER" "$LARAVEL_SERVICE" \
         ./vendor/bin/phpstan analyse -c ./.devops/conf/.phpstan.neon --memory-limit=2G
 
     exit 0
@@ -129,13 +139,13 @@ fi
 if [ "$1" == "lint-js" ]; then
     shift 1
 
-    docker compose exec -u "$LARAVEL_USER" "$LARAVEL_SERVICE" \
+    ${DOCKER_COMPOSE} exec -u "$LARAVEL_USER" "$LARAVEL_SERVICE" \
         ./node_modules/.bin/eslint -c ./.eslintrc ./resources
 
     exit 0
 fi
 
 # Pass unknown commands to the "docker-compose" binary...
-docker compose "$@"
+${DOCKER_COMPOSE} "$@"
 
 exit 0
