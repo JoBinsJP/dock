@@ -116,13 +116,17 @@ services:
     volumes:
       - ./mysql/56/mysql.cnf:/etc/mysql/conf.d/mysql.cnf:ro
       - ./data/mysql/56:/var/lib/mysql:rw
+    command: --default-authentication-plugin=mysql_native_password
     ports:
       - ${MYSQL_56_PORT}:3306
+    expose:
+      - ${MYSQL_56_PORT}
     #    restart: always
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASS}
     networks:
       - mysql
+      - public
 
   mysql57:
     image: mysql:5.7
@@ -139,3 +143,4 @@ services:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASS}
     networks:
       - mysql
+      - public
