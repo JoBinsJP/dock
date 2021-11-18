@@ -2,7 +2,6 @@
 
 LARAVEL_SERVICE=laravel
 LARAVEL_USER=laravel
-DATABASE_SERVICE=postgres12
 
 # Source the ".env" file so Laravel's environment variables are available...
 if [ -f ./.env ]; then
@@ -74,10 +73,19 @@ if [ "$1" == "run" ]; then
 fi
 
 # To restores db dump
-if [ "$1" == "db:restore" ]; then
+if [ "$1" == "postgres:restore" ]; then
     shift 1
 
-    ${DOCKER_COMPOSE} exec -T "$DATABASE_SERVICE" psql -U "$POSTGRES_ROOT_USER" -d "$DUMP_RESTORE_DB_NAME" -w <"$@"
+    ${DOCKER_COMPOSE} exec -T "$RESTORE_POSTGRES" psql -U "$POSTGRES_ROOT_USER" -d "$RESTORE_DB_NAME" -w <"$@"
+
+    exit 0
+fi
+
+# To restores db dump
+if [ "$1" == "mysql:restore" ]; then
+    shift 1
+
+    ${DOCKER_COMPOSE} exec -T "$RESTORE_MYSQL" mysql -u "$MYSQL_ROOT_USER" "$RESTORE_DB_NAME" <"$@"
 
     exit 0
 fi
