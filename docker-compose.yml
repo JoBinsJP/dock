@@ -30,8 +30,6 @@ services:
       - 443:443
     networks:
       - public
-    dns:
-      - host.docker.internal
     volumes:
       - ./traefik/traefik.toml:/etc/traefik/traefik.toml:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -42,14 +40,46 @@ services:
       - traefik.http.routers.api.service=api@internal
 
   postgres12:
-    image: postgres:12-alpine
-    container_name: "postgres-12"
+    image: postgres:12
+    container_name: "postgres12"
     volumes:
-      - ./data/postgres/12:/var/lib/postgresql/data:rw
+      - ./data/postgres/12-deb:/var/lib/postgresql/data:rw
     #    restart: on-failure
     ports:
       - ${POSTGRES_12_PORT}:5432
     environment:
+      - POSTGRES_USER=${POSTGRES_ROOT_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_ROOT_PASS}
+    networks:
+      - postgres
+      - public
+
+  postgres12-alpine:
+    image: postgres:12-alpine
+    container_name: "postgres12-alpine"
+    volumes:
+      - ./data/postgres/12:/var/lib/postgresql/data:rw
+    #    restart: on-failure
+    ports:
+      - ${POSTGRES_12_ALPINE_PORT}:5432
+    environment:
+      - POSTGRES_USER=${POSTGRES_ROOT_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_ROOT_PASS}
+    networks:
+      - postgres
+      - public
+
+  postgres12-jp:
+    container_name: "postgres12-jp"
+    build:
+      context: ./postgres
+    volumes:
+      - ./data/postgres/12-jp:/var/lib/postgresql/data:rw
+    #    restart: on-failure
+    ports:
+      - ${POSTGRES_12_JP_PORT}:5432
+    environment:
+      # - POSTGRES_INITDB_ARGS='-E EUC_JP'
       - POSTGRES_USER=${POSTGRES_ROOT_USER}
       - POSTGRES_PASSWORD=${POSTGRES_ROOT_PASS}
     networks:
