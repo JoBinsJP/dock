@@ -73,25 +73,6 @@ services:
       - postgres
       - public
 
-  postgres12-jp:
-    container_name: "postgres12-jp"
-    build:
-      context: ./postgres
-    volumes:
-      - ./data/postgres/12-jp:/var/lib/postgresql/data:rw
-    #    restart: on-failure
-    ports:
-      - ${POSTGRES_12_JP_PORT}:5432
-    environment:
-      # - POSTGRES_INITDB_ARGS='-E EUC_JP'
-      - POSTGRES_USER=${POSTGRES_ROOT_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_ROOT_PASS}
-    labels:
-      - "traefik.enable=false"
-    networks:
-      - postgres
-      - public
-
   redis:
     image: redis:latest
     container_name: "redis"
@@ -186,3 +167,21 @@ services:
     networks:
       - mysql
       - public
+
+  mysql8:
+      image: mysql:8
+      platform: linux/x86_64
+      container_name: "mysql8"
+      volumes:
+        - ./mysql/8/mysql.cnf:/etc/mysql/conf.d/mysql.cnf:ro
+        - ./data/mysql/8:/var/lib/mysql:rw
+      ports:
+        - ${MYSQL_8_PORT}:3306
+      #    restart: always
+      environment:
+        - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASS}
+      labels:
+        - "traefik.enable=false"
+      networks:
+        - mysql
+        - public
