@@ -38,6 +38,7 @@ services:
       - tls.certificates.stores=default
       - traefik.http.routers.api.rule=Host(`docker.localhost`)
       - traefik.http.routers.api.service=api@internal
+      - traefik.pilot.token=${PILOT_TOKEN}
 
   postgres12:
     image: postgres:12
