@@ -20,6 +20,20 @@ networks:
     name: minio
     driver: bridge
 
+volumes:
+  postgres14_data:
+    name: postgres14_data
+  mysql56_data:
+    name: mysql56_data
+  mysql57_data:
+    name: mysql57_data
+  mysql8_data:
+    name: mysql8_data
+  redis_data:
+    name: redis_data
+  minio_data:
+    name: minio_data
+
 services:
   traefik:
     image: traefik:latest
@@ -40,14 +54,14 @@ services:
       - traefik.http.routers.api.service=api@internal
       - traefik.pilot.token=${PILOT_TOKEN}
 
-  postgres12:
-    image: postgres:12
-    container_name: "postgres12"
+  postgres14:
+    image: postgres:14
+    container_name: "postgres14"
     volumes:
-      - ./data/postgres/12-deb:/var/lib/postgresql/data:rw
+      - postgres14_data:/var/lib/postgresql/data:rw
     #    restart: on-failure
     ports:
-      - ${POSTGRES_12_PORT}:5432
+      - ${POSTGRES_14_PORT:-5432}:5432
     environment:
       - POSTGRES_USER=${POSTGRES_ROOT_USER}
       - POSTGRES_PASSWORD=${POSTGRES_ROOT_PASS}
@@ -56,78 +70,6 @@ services:
     networks:
       - postgres
       - public
-
-  postgres12-alpine:
-    image: postgres:12-alpine
-    container_name: "postgres12-alpine"
-    volumes:
-      - ./data/postgres/12:/var/lib/postgresql/data:rw
-    #    restart: on-failure
-    ports:
-      - ${POSTGRES_12_ALPINE_PORT}:5432
-    environment:
-      - POSTGRES_USER=${POSTGRES_ROOT_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_ROOT_PASS}
-    labels:
-      - "traefik.enable=false"
-    networks:
-      - postgres
-      - public
-
-  redis:
-    image: redis:latest
-    container_name: "redis"
-    volumes:
-      - ./data/redis:/data
-    ports:
-      - 6379:6379
-    labels:
-      - "traefik.enable=false"
-    networks:
-      - redis
-      - public
-
-  mailhog:
-    image: mailhog/mailhog:latest
-    container_name: "mailhog"
-    ports:
-      - 1025:1025
-    #      - 8025:8025
-    expose:
-      - 8025
-    labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=traefik_web"
-      - "traefik.http.routers.mailhog.rule=Host(`mail.localhost`)"
-      - "traefik.http.services.mailhog.loadbalancer.server.port=8025"
-      - "traefik.http.services.mailhog.loadbalancer.passhostheader=true"
-    networks:
-      - mail
-      - public
-
-  minio:
-    image: minio/minio
-    container_name: "minio"
-    command: server --console-address 0.0.0.0:${MINIO_PORT} /export
-    entrypoint:
-      - "minio"
-    volumes:
-      - ./data/minio/data:/export
-      - ./data/minio/config:/root/.minio
-    ports:
-      - ${MINIO_PORT}:${MINIO_PORT}
-    environment:
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
-    networks:
-      - minio
-      - public
-    labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=traefik_web"
-      - "traefik.http.routers.minio.rule=HostRegexp(`minio.localhost`, `{subdomain:[a-z]+}.minio.localhost`)"
-      - "traefik.http.services.minio.loadbalancer.server.port=${MINIO_PORT}"
-      - "traefik.http.services.minio.loadbalancer.passhostheader=true"
 
   mysql56:
     image: mysql:5.6
@@ -135,12 +77,10 @@ services:
     container_name: "mysql56"
     volumes:
       - ./mysql/56/mysql.cnf:/etc/mysql/conf.d/mysql.cnf:ro
-      - ./data/mysql/56:/var/lib/mysql:rw
+      - mysql56_data:/var/lib/mysql:rw
     command: --default-authentication-plugin=mysql_native_password
     ports:
-      - ${MYSQL_56_PORT}:3306
-    expose:
-      - ${MYSQL_56_PORT}
+      - ${MYSQL_56_PORT:-3306}:3306
     #    restart: always
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASS}
@@ -157,9 +97,9 @@ services:
     command: --default-authentication-plugin=mysql_native_password
     volumes:
       - ./mysql/57/mysql.cnf:/etc/mysql/conf.d/mysql.cnf:ro
-      - ./data/mysql/57:/var/lib/mysql:rw
+      - mysql57_data:/var/lib/mysql:rw
     ports:
-      - ${MYSQL_57_PORT}:3306
+      - ${MYSQL_57_PORT:-3306}:3306
     #    restart: always
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASS}
@@ -170,19 +110,71 @@ services:
       - public
 
   mysql8:
-      image: mysql:8
-      platform: linux/x86_64
-      container_name: "mysql8"
-      volumes:
-        - ./mysql/8/mysql.cnf:/etc/mysql/conf.d/mysql.cnf:ro
-        - ./data/mysql/8:/var/lib/mysql:rw
-      ports:
-        - ${MYSQL_8_PORT}:3306
-      #    restart: always
-      environment:
-        - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASS}
-      labels:
-        - "traefik.enable=false"
-      networks:
-        - mysql
-        - public
+    image: mysql:8
+    platform: linux/x86_64
+    container_name: "mysql8"
+    volumes:
+      - ./mysql/8/mysql.cnf:/etc/mysql/conf.d/mysql.cnf:ro
+      - mysql8_data:/var/lib/mysql:rw
+    ports:
+      - ${MYSQL_8_PORT:-3306}:3306
+    #    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASS}
+    labels:
+      - "traefik.enable=false"
+    networks:
+      - mysql
+      - public
+
+  redis:
+    image: redis:latest
+    container_name: "redis"
+    volumes:
+      - redis_data:/data
+    ports:
+      - ${REDIS_PORT:-6379}:6379
+    labels:
+      - "traefik.enable=false"
+    networks:
+      - redis
+      - public
+
+  mail:
+    image: mailhog/mailhog:latest
+    container_name: "mailhog"
+    ports:
+      - 1025:1025
+    expose:
+      - 8025
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_web"
+      - "traefik.http.routers.mailhog.rule=Host(`mail.localhost`)"
+      - "traefik.http.services.mailhog.loadbalancer.server.port=8025"
+      - "traefik.http.services.mailhog.loadbalancer.passhostheader=true"
+    networks:
+      - mail
+      - public
+
+  minio:
+    image: minio/minio:latest
+    container_name: "minio"
+    command: minio server /data/minio --console-address ":8900"
+    volumes:
+      - minio_data:/data/minio
+      - ./data/minio/config:/root/.minio
+    ports:
+      - ${MINIO_PORT:-9000}:9000
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    networks:
+      - minio
+      - public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_web"
+      - "traefik.http.routers.minio.rule=HostRegexp(`minio.localhost`, `{subdomain:[a-z]+}.minio.localhost`)"
+      - "traefik.http.services.minio.loadbalancer.server.port=8900"
+      - "traefik.http.services.minio.loadbalancer.passhostheader=true"
