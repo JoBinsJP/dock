@@ -46,7 +46,9 @@ services:
       - public
     volumes:
       - ./traefik/traefik.toml:/etc/traefik/traefik.toml:ro
+      - ./traefik/dynamic.yml:/etc/traefik/dynamic_conf/dynamic.yml:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/certs:/etc/certs:ro
     labels:
       - traefik.enable=true
       - tls.certificates.stores=default

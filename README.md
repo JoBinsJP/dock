@@ -7,3 +7,16 @@ after running this command.
 ```sql
 GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY 'password';
 ```
+
+Traefik Certificates for HTTPs
+
+1. install [mkcert](https://github.com/FiloSottile/mkcert)
+```shell
+# If it's the firt install of mkcert, run
+mkcert -install
+```
+
+2. Generate certificate for domain and store in certs
+```shell
+mkcert -cert-file traefik/certs/local-cert.pem -key-file traefik/certs/local-key.pem "localhost" "jobins-crm.localhost"
+```
